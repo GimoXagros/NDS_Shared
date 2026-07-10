@@ -803,7 +803,7 @@ void autoSettingsSet() {
 }
 
 const char *getAutoSettingsText() {
-	return autoTxt[(emuSettings & AUTOSAVE_SETTINGS)>>9];
+	return autoTxt[(emuSettings & AUTOSAVE_SETTINGS)>>1];
 }
 
 void autoNVRAMSet() {
@@ -812,7 +812,7 @@ void autoNVRAMSet() {
 }
 
 const char *getAutoNVRAMText() {
-	return autoTxt[(emuSettings & AUTOLOAD_NVRAM)>>10];
+	return autoTxt[(emuSettings & AUTOLOAD_NVRAM)>>3];
 }
 
 void saveNVRAMSet() {
@@ -821,7 +821,7 @@ void saveNVRAMSet() {
 }
 
 const char *getSaveNVRAMText() {
-	return autoTxt[(emuSettings & AUTOSAVE_NVRAM)>>11];
+	return autoTxt[(emuSettings & AUTOSAVE_NVRAM)>>4];
 }
 
 void debugTextSet() {
@@ -833,7 +833,7 @@ const char *getDebugText() {
 }
 
 void sleepSet() {
-	int i = (emuSettings+0x10) & AUTOSLEEP_MASK;
+	int i = (emuSettings+0x100) & AUTOSLEEP_MASK;
 	emuSettings = (emuSettings & ~AUTOSLEEP_MASK) | i;
 	if (i == AUTOSLEEP_5MIN) {
 		sleepTime = 60*60*5;		// 5 min
@@ -851,7 +851,7 @@ void sleepSet() {
 }
 
 const char *getSleepText() {
-	return sleepTxt[(emuSettings & AUTOSLEEP_MASK)>>4];
+	return sleepTxt[(emuSettings & AUTOSLEEP_MASK)>>8];
 }
 
 void powerSaveSet() {
@@ -860,7 +860,7 @@ void powerSaveSet() {
 }
 
 const char *getPowerSaveText() {
-	return autoTxt[(emuSettings & POWER_SAVE_MENU)>>1];
+	return autoTxt[(emuSettings & POWER_SAVE_MENU)>>10];
 }
 
 void screenSwapSet() {
@@ -869,7 +869,7 @@ void screenSwapSet() {
 }
 
 const char *getScreenSwapText() {
-	return autoTxt[(emuSettings & MAIN_ON_BOTTOM)>>8];
+	return autoTxt[(emuSettings & MAIN_ON_BOTTOM)>>11];
 }
 
 void gammaSet() {
