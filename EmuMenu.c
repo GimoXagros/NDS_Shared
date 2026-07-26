@@ -47,7 +47,7 @@ const char *const autoTxt[]  = {"Off", "On", "With R"};
 const char *const brighTxt[] = {"I", "II", "III", "IIII", "IIIII"};
 static const char *const speedTxt[] = {"Normal", "200%", "Max", "50%"};
 static const char *const sleepTxt[] = {"5min", "10min", "30min", "Off"};
-static char *const flickTxt[] = {"No Flicker", "Flicker"};
+static const char *const flickTxt[] = {"No Flicker", "Flicker"};
 
 u8 autoA = 0;
 u8 autoB = 0;
@@ -821,6 +821,15 @@ void saveNVRAMSet() {
 
 const char *getSaveNVRAMText() {
 	return autoTxt[(emuSettings & AUTOSAVE_NVRAM)>>4];
+}
+
+void showClockSet() {
+	emuSettings ^= SHOW_UI_CLOCK;
+	settingsChanged = true;
+}
+
+const char *getShowClockText() {
+	return autoTxt[(emuSettings & SHOW_UI_CLOCK)>>5];
 }
 
 void debugTextSet() {

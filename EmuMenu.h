@@ -138,6 +138,8 @@ void autoNVRAMSet(void);
 const char *getAutoNVRAMText(void);
 void saveNVRAMSet(void);
 const char *getSaveNVRAMText(void);
+void showClockSet(void);
+const char *getShowClockText(void);
 void debugTextSet(void);
 const char *getDebugText(void);
 void sleepSet(void);
