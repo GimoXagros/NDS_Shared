@@ -1,3 +1,6 @@
+#if !__ASSEMBLER__
+	#error This header file is only for use in assembly files!
+#endif
 
 ;@----------------------------------------------------------------------------
 	.equ KEY_A,         (1<<0)  ;@ Keypad A button.
@@ -14,6 +17,14 @@
 	.equ KEY_Y,         (1<<11) ;@ Keypad Y button.
 	.equ KEY_TOUCH,     (1<<12) ;@ Touchscreen pendown.
 	.equ KEY_LID,       (1<<13) ;@ Lid state.
+	.equ KEY_DEBUG,     (1<<14) ;@ Debug state.
 
-	.equ KEY_OPEN_MENU, 1<<30   ;@ Key to open menu
+	.equ KEY_JOY_MASK,  (0xF<<4);@ Joypad mask.
+
+	.equ ACT_SCRL_UP,   (1<<25) ;@ Action to scroll unscaled screen up
+	.equ ACT_SCRL_DOWN, (1<<26) ;@ Action to scroll unscaled screen down
+	.equ ACT_FAST_FORW, (1<<27) ;@ Action to fast forward
+	.equ ACT_LOAD_STAT, (1<<28) ;@ Action to load state
+	.equ ACT_SAVE_STAT, (1<<29) ;@ Action to save state
+	.equ ACT_OPEN_MENU, (1<<30) ;@ Action to open menu
 ;@----------------------------------------------------------------------------
