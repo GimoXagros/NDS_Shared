@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#define FILENAME_MAX_LENGTH (128)
+#define FILENAME_MAX_LENGTH (1024)
 #define FILEPATH_MAX_LENGTH (256)
 
 extern int fatAvailable;

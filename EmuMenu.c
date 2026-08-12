@@ -7,13 +7,16 @@
 #include "EmuMenu.h"
 #include "EmuSettings.h"
 #include "FileHelper.h"
+#include "UnicodeText.h"
 #include "AsmExtra.h"
+#include "../Localization.h"
 #include "../Main.h"
 #include "../Gui.h"
 #include "../FileHandling.h"
 #include "../Gfx.h"				// gFlicker & gTwitch
 #include "../io.h"
 #include "../Sound.h"
+#include "../Cheats.h"
 
 #define MENU_MAX_DEPTH (8)
 
@@ -25,22 +28,23 @@ static void setSelectedMenu(int menuNr);
 static void setSelectedMain(int menuNr);
 static void nullUI(void);
 static void subUI(void);
+static int drawRawItem(const char *str, int col, int row, int pal);
 
 static const char menuTopRow[] = {   0x82,0x83, ' ',0x81,0x82,0x82,0x82,0x82,0x83, ' ',0x81,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x83, ' ',0x81,0x82,0x82,0x82,0x82,0x82,0x83,0};
-static const char menuMiddleRow[] = { 'X',0x85, ' ',0x84, 'F', 'i', 'l', 'e',0x85, ' ',0x84, 'O', 'p', 't', 'i', 'o', 'n', 's',0x85, ' ',0x84, 'A', 'b', 'o', 'u', 't',0x85,0};
+static const char menuMiddleRow[] = { 'X',0x85, ' ',0x84, ' ', ' ', ' ', ' ',0x85, ' ',0x84, ' ', ' ', ' ', ' ', ' ', ' ', ' ',0x85, ' ',0x84, ' ', ' ', ' ', ' ', ' ',0x85,0};
 static const char menuBottomRow[] = { ' ',0x8A,0x82,0x89, ' ', ' ', ' ', ' ',0x8A,0x82,0x89, ' ', ' ', ' ', ' ', ' ', ' ', ' ',0x8A,0x82,0x89, ' ', ' ', ' ', ' ', ' ',0x8A,0x82,0x82,0x82,0x82,0x82,0};
 static const char menuFrontRow[] = { 0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0};
 
 static const char tabTopFile[] = {0x81,0x82,0x82,0x82,0x82,0x83,0};
-static const char tabMidFile[] = {0x84, 'F', 'i', 'l', 'e',0x85,0};
+static const char tabMidFile[] = {0x84, ' ', ' ', ' ', ' ',0x85,0};
 static const char tabBotFile[] = {0x89, ' ', ' ', ' ', ' ',0x8A,0};
 
 static const char tabTopOptions[] = {0x81,0x82,0x82,0x82,0x82,0x82,0x82,0x82,0x83,0};
-static const char tabMidOptions[] = {0x84, 'O', 'p', 't', 'i', 'o', 'n', 's',0x85,0};
+static const char tabMidOptions[] = {0x84, ' ', ' ', ' ', ' ', ' ', ' ', ' ',0x85,0};
 static const char tabBotOptions[] = {0x89, ' ', ' ', ' ', ' ', ' ', ' ', ' ',0x8A,0};
 
 static const char tabTopAbout[] = {0x81,0x82,0x82,0x82,0x82,0x82,0x83,0};
-static const char tabMidAbout[] = {0x84, 'A', 'b', 'o', 'u', 't',0x85,0};
+static const char tabMidAbout[] = {0x84, ' ', ' ', ' ', ' ', ' ',0x85,0};
 static const char tabBotAbout[] = {0x89, ' ', ' ', ' ', ' ', ' ',0x8A,0};
 
 const char *const autoTxt[]  = {"Off", "On", "With R"};
@@ -92,8 +96,8 @@ void guiRunLoop(void) {
 }
 
 void uiNullDefault() {
-	drawText("        Touch screen or", 10, 0);
-	drawText("      press L+R for menu.", 11, 0);
+	drawText(tr("        Touch screen or"), 10, 0);
+	drawText(tr("      press L+R for menu."), 11, 0);
 }
 
 void uiAutoSub() {
@@ -105,7 +109,7 @@ void uiAutoSub() {
 		if (tf != NULL) {
 			txt2 = tf();
 		}
-		drawSubItem(menu->items[i].text, txt2);
+		drawSubItem(tr(menu->items[i].text), tr(txt2));
 	}
 }
 
@@ -117,7 +121,7 @@ void uiAuto() {
 		setupMenu();
 		const Menu *menu = menus[selectedMenu];
 		for (int i=0; i<menu->itemCount; i++) {
-			drawMenuItem(menu->items[i].text);
+		drawMenuItem(tr(menu->items[i].text));
 		}
 	}
 }
@@ -128,7 +132,7 @@ void setupMenu() {
 	menuItemRow = 0;
 }
 void setupSubMenuText(void) {
-	setupSubMenu(menus[selectedMenu]->header);
+	setupSubMenu(tr(menus[selectedMenu]->header));
 }
 void setupSubMenu(const char *menuString) {
 	setupMenu();
@@ -139,22 +143,25 @@ void drawTabs() {
 	drawBText(menuTopRow, 0, 1);
 	drawBText(menuMiddleRow, 1, 1);
 	drawBText(menuBottomRow, 2, 1);
-	drawText(menuFrontRow, 2, 0);
+	drawRawItem(menuFrontRow, 0, 2, 0);
 	if (selectedMain == 1) {
-		drawItem(tabTopFile, 3, 0+32, 0);
-		drawItem(tabMidFile, 3, 1+32, 0);
-		drawItem(tabBotFile, 3, 2, 0);
+		drawRawItem(tabTopFile, 3, 0+32, 0);
+		drawRawItem(tabMidFile, 3, 1+32, 0);
+		drawRawItem(tabBotFile, 3, 2, 0);
 	}
 	else if (selectedMain == 2) {
-		drawItem(tabTopOptions, 10, 0+32, 0);
-		drawItem(tabMidOptions, 10, 1+32, 0);
-		drawItem(tabBotOptions, 10, 2, 0);
+		drawRawItem(tabTopOptions, 10, 0+32, 0);
+		drawRawItem(tabMidOptions, 10, 1+32, 0);
+		drawRawItem(tabBotOptions, 10, 2, 0);
 	}
 	else if (selectedMain == 3) {
-		drawItem(tabTopAbout, 20, 0+32, 0);
-		drawItem(tabMidAbout, 20, 1+32, 0);
-		drawItem(tabBotAbout, 20, 2, 0);
+		drawRawItem(tabTopAbout, 20, 0+32, 0);
+		drawRawItem(tabMidAbout, 20, 1+32, 0);
+		drawRawItem(tabBotAbout, 20, 2, 0);
 	}
+	drawItem(tr("File"), 4, 1, 0);
+	drawItem(tr("Options"), 11, 1, 0);
+	drawItem(tr("About"), 21, 1, 0);
 }
 
 void uiDummy() {
@@ -310,7 +317,12 @@ void subUI() {
 	const int key = getMenuInput(menus[selectedMenu]->itemCount);
 
 	if (key & KEY_A) {
-		menus[selectedMenu]->items[selected].fn();
+		if (selectedMenu == 14) {
+			if (cheatsGetCount()) cheatsToggle(selected);
+		}
+		else {
+			menus[selectedMenu]->items[selected].fn();
+		}
 	}
 	if (key & KEY_B) {
 		backOutOfMenu();
@@ -408,6 +420,7 @@ int getMenuTouch(int *keyHit, int sel, int itemCount) {
 }
 
 void redrawUI() {
+	textResetGlyphCache();
 	// Fix up vertical position of items
 	int itemCount = menus[selectedMenu]->itemCount;
 	if (itemCount > 9 && selected > 4) {
@@ -458,7 +471,7 @@ void drawLongFilename(char **dirEntries, int item, int row) {
 
 	buf = directoryStringFromPos(dirEntries, item);
 	if (*buf == '~') buf++;
-	xLen = strlen(buf)-32;
+	xLen = (int)textColumns(buf)-32;
 	if (xLen < 1) {
 		return;
 	}
@@ -476,7 +489,7 @@ void drawLongFilename(char **dirEntries, int item, int row) {
 	if (lineRepeat < 0) {
 		dir = 1;
 	}
-	drawText(buf+ofs, row+1, 4);
+	drawText(textSkipColumns(buf, ofs), row+1, 4);
 }
 
 void cls(int chrMap) {
@@ -491,14 +504,28 @@ void cls(int chrMap) {
 int drawItem(const char *str, int col, int row, int pal) {
 	u16 *here = map0sub+col+row*32;
 	int i = 0;
+	const bool utf8 = textIsValidUtf8(str);
+	const unsigned char *cursor = (const unsigned char *)str;
+	unsigned int remaining = strlen(str);
+	const int attrib = pal << 12;
+	while (remaining && (i + col) <= 31) {
+		unsigned int byteCount;
+		u32 codepoint = textDecodeCharacter(cursor, remaining, utf8, &byteCount);
+		if (codepoint < ' ') break;
+		here[i++] = textTileForCodepoint(codepoint) | attrib;
+		cursor += byteCount;
+		remaining -= byteCount;
+	}
+	return i+col;
+}
 
-	int attrib = (pal<<12)|0x100;
-	while (str[i] >= ' ') {
-		here[i] = str[i]|attrib;
+static int drawRawItem(const char *str, int col, int row, int pal) {
+	u16 *here = map0sub+col+row*32;
+	int i = 0;
+	const int attrib = (pal<<12)|0x100;
+	while ((unsigned char)str[i] >= ' ' && (i + col) <= 31) {
+		here[i] = (unsigned char)str[i] | attrib;
 		i++;
-		if ((i + col) > 31) {
-			break;
-		}
 	}
 	return i+col;
 }
@@ -525,7 +552,7 @@ void drawSubText(const char *str, int row, int hiLite) {
 }
 
 void drawStrings(const char *str1, const char *str2, int col, int row, int pal) {
-	char str[48];
+	char str[128];
 	if (str2) {
 		strlMerge(str, str1, " ", sizeof(str));
 		strlMerge(str, str, str2, sizeof(str));
@@ -556,9 +583,10 @@ void drawBText(const char *str, int row, int shadow) {
 void drawTextBackground(const char *str, int row, int shadow) {
 	u16 *here = map0sub+(row+32)*32;
 	int i = 0;
+	const int columns = textColumns(str);
 
 	shadow = (shadow<<12)+0x0180;
-	while (str[i] >= ' ') {
+	while (i < columns) {
 		here[i] = shadow;
 		i++;
 		if (i > 31) {
@@ -622,12 +650,13 @@ void clearItemBackground(int row) {
 void drawItemBackground(const char *str, int row, int sub) {
 	u16 *here = map0sub+(row+31)*32;
 	int i = sub;
+	const int columns = textColumns(str);
 	clearItemBackground(row);
 
 	here[i+32] = 0x84|0x2100;
 	here[i+64] = 0x86|0x2100;
 	here[i++]  = 0x81|0x2100;
-	while (str[i-sub] >= ' ') {
+	while ((i-sub) < columns) {
 		here[i+32] = 0x80|0x2100;
 		here[i+64] = 0x87|0x2100;
 		here[i++]  = 0x82|0x2100;
@@ -726,7 +755,7 @@ void outputLogToScreen() {
 
 void infoOutput(const char *str) {
 	logBufPtr++;
-	strlcpy(logBuffer[logBufPtr&7], str, 32);
+	textCopyColumns(logBuffer[logBufPtr&7], sizeof(logBuffer[0]), tr(str), 31);
 }
 
 void debugOutput(const char *str) {

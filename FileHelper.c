@@ -11,6 +11,7 @@
 #include "crc32.h"
 #include "../Main.h"
 #include "../FileHandling.h"
+#include "../Localization.h"
 
 static const int DIRECTORY_CACHE_SIZE = 0x8000;
 static const int DIRECTORY_MAX_ENTRIES = 768;
@@ -113,7 +114,7 @@ bool loadDeviceState(const char *folderName) {
 		int stateSize = getStateSize();
 		if ((statePtr = malloc(stateSize))) {
 			cls(0);
-			drawText("        Loading state...", 11, 0);
+			drawText(tr("        Loading state..."), 11, 0);
 			if (fread(statePtr, 1, stateSize, file) == stateSize) {
 				unpackState(statePtr);
 				infoOutput("Loaded state.");
@@ -150,7 +151,7 @@ bool saveDeviceState(const char *folderName) {
 		int stateSize = getStateSize();
 		if ((statePtr = malloc(stateSize))) {
 			cls(0);
-			drawText("        Saving state...", 11, 0);
+			drawText(tr("        Saving state..."), 11, 0);
 			packState(statePtr);
 			fwrite(statePtr, 1, stateSize, file);
 			free(statePtr);
