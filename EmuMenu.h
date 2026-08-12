@@ -92,6 +92,7 @@ void drawTabs(void);
 void setupMenu(void);
 void setupSubMenuText(void);
 void setupSubMenu(const char *menuString);
+void setMenuItemRow(int row);
 void cls(int chrMap);
 void setupCompressedBackground(const void *tiles, const void *map, int rowOffset);
 void int2Str(int i, char *s);
