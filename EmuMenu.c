@@ -767,6 +767,9 @@ void debugOutput(const char *str) {
 
 void exitEmulator() {
 	if (enableExit) {
+		if (gameInserted && (emuSettings & AUTOSAVE_NVRAM)) {
+			saveNVRAM();
+		}
 		exit(0);
 	}
 }

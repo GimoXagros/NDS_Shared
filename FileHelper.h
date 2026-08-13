@@ -53,6 +53,14 @@ bool saveDeviceState(const char *folderName);
 int findFolder(const char *folderName);
 
 /**
+ * Finds the specified folder using the normal search order. If it does not
+ * exist, creates it at the filesystem root and enters it.
+ * @param  *folderName: Name of the folder to find or create.
+ * @return Error code, 0 if no error.
+ */
+int ensureFolder(const char *folderName);
+
+/**
  * Gets the last dot and the characters after, in the fileName.
  * @param  *dest: Where to put the result. Must be (at least) 8 bytes.
  * @param  *fileName: The file name to handle.

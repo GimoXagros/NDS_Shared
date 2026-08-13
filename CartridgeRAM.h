@@ -71,6 +71,9 @@ vu16 *cartRamUnlock(void);
 /** Tries to lock the RAM, this may not work on all kinds of carts. */
 void cartRamLock(void);
 
+/** Enable the appropriate cache mapping after a ROM has been loaded. */
+void cartRamEnableCache(void);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

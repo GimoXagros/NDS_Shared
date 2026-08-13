@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <sys/dir.h>
 
 #include "FileHelper.h"
@@ -32,6 +33,7 @@ static int getDirectory(char *dirTable, const char *dirName, const char *fileTyp
  */
 static void directorySort(char **dirEntries, int count);
 static void directoryBack(char *path);
+static void rememberLoadedFilename(const char *fileName);
 
 int fatAvailable = 0;
 static char *dTable = NULL;
@@ -63,33 +65,67 @@ void drawSpinner() {
 
 int loadROM(void *dest, const char *fileName, const int maxSize) {
 	int size = 0;
-	FILE *file;
+	FILE *file = NULL;
 	char fileExt[8];
 
+#ifdef DSPICO_LAUNCH_DIAGNOSTIC
+	drawText("R0 extension", 13, 0);
+#endif
 	getFileExtension(fileExt, fileName);
+#ifdef DSPICO_LAUNCH_DIAGNOSTIC
+	drawText("R1 open", 14, 0);
+#endif
 	if (strstr(fileExt, ".zip")) {
 		if (dest >= (void *)0x8000000 && dest < (void *)0xC000000) {
 			infoOutput("Can not load zip to Exp-RAM.");
 		}
 		else if (loadFileTypeInZip(dest, fileName, FILEEXTENSIONS, maxSize) == 0) {
 			size = cenHead.ucSize;
-			strlcpy(currentFilename, zipFilename, sizeof(currentFilename));
+			rememberLoadedFilename(zipFilename);
 		}
 		else {
 			infoOutput(zipError);
 		}
 	}
-	else if ((file = fopen(fileName, "r"))) {
+	else if ((file = fopen(fileName, "rb"))) {
+#ifdef DSPICO_LAUNCH_DIAGNOSTIC
+		drawText("R2 opened", 15, 0);
+#endif
 		fseek(file, 0, SEEK_END);
 		size = ftell(file);
+#ifdef DSPICO_LAUNCH_DIAGNOSTIC
+		char diagnosticLine[64];
+		snprintf(diagnosticLine, sizeof(diagnosticLine), "R3 size=%d", size);
+		drawText(diagnosticLine, 16, 0);
+#endif
 		if (size > maxSize) {
 			infoOutput("File too large!");
 			size = 0;
 		}
 		else {
 			fseek(file, 0, SEEK_SET);
-			fread(dest, 1, size, file);
-			strlcpy(currentFilename, fileName, sizeof(currentFilename));
+			int bytesRead = 0;
+			while (bytesRead < size) {
+				int chunkSize = size - bytesRead;
+				if (chunkSize > 32 * 1024) {
+					chunkSize = 32 * 1024;
+				}
+#ifdef DSPICO_LAUNCH_DIAGNOSTIC
+				snprintf(diagnosticLine, sizeof(diagnosticLine), "R4 read=%dK/%dK",
+						bytesRead / 1024, size / 1024);
+				drawText(diagnosticLine, 17, 0);
+#endif
+				size_t count = fread((u8 *)dest + bytesRead, 1, chunkSize, file);
+				if (count != (size_t)chunkSize) {
+					infoOutput("Error while reading ROM.");
+					size = 0;
+					break;
+				}
+				bytesRead += chunkSize;
+			}
+			if (size) {
+				rememberLoadedFilename(fileName);
+			}
 		}
 		fclose(file);
 	}
@@ -98,6 +134,15 @@ int loadROM(void *dest, const char *fileName, const int maxSize) {
 		infoOutput(fileName);
 	}
 	return size;
+}
+
+static void rememberLoadedFilename(const char *fileName) {
+	// Save data is kept in /nitroswan. Launcher arguments can be absolute
+	// device paths, so retaining the full ROM path here would make fopen()
+	// ignore that save directory and write beside the ROM instead.
+	const char *baseName = strrchr(fileName, '/');
+	baseName = baseName ? baseName + 1 : fileName;
+	strlcpy(currentFilename, baseName, sizeof(currentFilename));
 }
 
 bool loadDeviceState(const char *folderName) {
@@ -170,23 +215,45 @@ bool saveDeviceState(const char *folderName) {
 	return err;
 }
 
-int findFolder(const char *folderName) {
+static int tryFindFolder(const char *folderName) {
 	char tempString[FILEPATH_MAX_LENGTH];
-	int retValue = 0;
+	// Direct path lookup also works when the FAT hidden attribute is set. Do
+	// not enumerate directory entries or filter on FAT attributes here.
 	if (!chdir(folderName)) {
-		return retValue;
+		return 0;
 	}
 	chdir("/");
 	strcpy(tempString, "data/");
 	strlcat(tempString, folderName, sizeof(tempString));
-	if (chdir(tempString)) {
-		if (chdir(folderName)) {
-			infoOutput("Couldn't find folder:");
-			infoOutput(folderName);
-			retValue = 1;
-		}
+	if (!chdir(tempString)) {
+		return 0;
 	}
-	return retValue;
+	return chdir(folderName) ? 1 : 0;
+}
+
+int findFolder(const char *folderName) {
+	if (!tryFindFolder(folderName)) {
+		return 0;
+	}
+	infoOutput("Couldn't find folder:");
+	infoOutput(folderName);
+	return 1;
+}
+
+int ensureFolder(const char *folderName) {
+	if (!tryFindFolder(folderName)) {
+		return 0;
+	}
+
+	// Keep existing relative and data/ folders compatible, but make a missing
+	// application folder at a deterministic location on the SD card.
+	chdir("/");
+	if (mkdir(folderName, 0777) || chdir(folderName)) {
+		infoOutput("Couldn't find folder:");
+		infoOutput(folderName);
+		return 1;
+	}
+	return 0;
 }
 
 void getFileExtension(char *dest, const char *fileName) {
