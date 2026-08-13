@@ -19,6 +19,8 @@
 	.global debugOutput_asm
 	.global enableSlot2Cache
 	.global disableSlot2Cache
+	.global enableN3dsExtraCache
+	.global disableN3dsExtraCache
 	.global bytecopy_
 	.global memmem_
 	.global memclr_
@@ -313,6 +315,74 @@ disableSlot2Cache:
 	mrc	p15,0,r0,c2,c0,0
 	bic r0,r0,#(1 << 3)
 	mcr	p15,0,r0,c2,c0,0
+	bx lr
+;@----------------------------------------------------------------------------
+enableN3dsExtraCache:
+	.type enableN3dsExtraCache STT_FUNC
+;@----------------------------------------------------------------------------
+	// BlocksDS maps region 5 (0x0C000000, 32MB) uncached and region 6
+	// (0x02000000, 16MB) cached in DSi mode. Move cached main RAM to region
+	// 3 first, then use the higher-priority region 6 for the complete debugger
+	// RAM mirror. This makes 0x0D000000 cacheable without ever unmapping the
+	// code that is currently executing from main RAM.
+	mrs r12,cpsr
+	orr r1,r12,#0x80
+	msr cpsr_c,r1
+
+	mov r0,#0
+	mcr p15,0,r0,c7,c14,0		;@ Clean and invalidate data cache.
+	mcr p15,0,r0,c7,c10,4		;@ Drain write buffer.
+
+	ldr r0,=0x0200002F			;@ Region 3: main RAM, 16MB.
+	mcr p15,0,r0,c6,c3,0
+	mrc p15,0,r0,c2,c0,0
+	orr r0,r0,#(1 << 3)
+	mcr p15,0,r0,c2,c0,0
+	mrc p15,0,r0,c2,c0,1
+	orr r0,r0,#(1 << 3)
+	mcr p15,0,r0,c2,c0,1
+	mrc p15,0,r0,c3,c0,0
+	orr r0,r0,#(1 << 3)
+	mcr p15,0,r0,c3,c0,0
+
+	ldr r0,=0x0C000031			;@ Region 6: DSi debugger RAM, 32MB.
+	mcr p15,0,r0,c6,c6,0
+	mov r0,#0
+	mcr p15,0,r0,c7,c5,0		;@ Invalidate instruction cache.
+	mcr p15,0,r0,c7,c10,4
+	msr cpsr_c,r12
+	bx lr
+;@----------------------------------------------------------------------------
+disableN3dsExtraCache:
+	.type disableN3dsExtraCache STT_FUNC
+;@----------------------------------------------------------------------------
+	// Restore region 6 before region 3 so execution from main RAM remains
+	// mapped throughout the transition.
+	mrs r12,cpsr
+	orr r1,r12,#0x80
+	msr cpsr_c,r1
+
+	mov r0,#0
+	mcr p15,0,r0,c7,c14,0
+	mcr p15,0,r0,c7,c10,4
+
+	ldr r0,=0x0200002F			;@ Region 6: cached main RAM, 16MB.
+	mcr p15,0,r0,c6,c6,0
+	ldr r0,=0x0300002D			;@ Region 3: DSi switchable IWRAM, 8MB.
+	mcr p15,0,r0,c6,c3,0
+	mrc p15,0,r0,c2,c0,0
+	bic r0,r0,#(1 << 3)
+	mcr p15,0,r0,c2,c0,0
+	mrc p15,0,r0,c2,c0,1
+	bic r0,r0,#(1 << 3)
+	mcr p15,0,r0,c2,c0,1
+	mrc p15,0,r0,c3,c0,0
+	bic r0,r0,#(1 << 3)
+	mcr p15,0,r0,c3,c0,0
+	mov r0,#0
+	mcr p15,0,r0,c7,c5,0
+	mcr p15,0,r0,c7,c10,4
+	msr cpsr_c,r12
 	bx lr
 ;@----------------------------------------------------------------------------
 bytecopy_:					;@ void bytecopy_(u8 *dst, const u8 *src, int count)

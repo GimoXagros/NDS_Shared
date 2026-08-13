@@ -371,7 +371,12 @@ u32 cartRamSize() {
 vu16 *cartRamUnlock() {
 	if (unlockFunc) {
 		sysSetCartOwner(BUS_OWNER_ARM9);
-		disableSlot2Cache();
+		if (rType == N3DS_RAM) {
+			disableN3dsExtraCache();
+		}
+		else {
+			disableSlot2Cache();
+		}
 		return unlockFunc();
 	}
 	return NULL;
@@ -380,7 +385,21 @@ vu16 *cartRamUnlock() {
 void cartRamLock() {
 	if (lockFunc) {
 		sysSetCartOwner(BUS_OWNER_ARM9);
-		disableSlot2Cache();
+		if (rType == N3DS_RAM) {
+			disableN3dsExtraCache();
+		}
+		else {
+			disableSlot2Cache();
+		}
 		lockFunc();
+	}
+}
+
+void cartRamEnableCache() {
+	if (rType == N3DS_RAM) {
+		enableN3dsExtraCache();
+	}
+	else if (rType != DETECT_RAM) {
+		enableSlot2Cache();
 	}
 }

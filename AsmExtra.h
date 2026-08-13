@@ -79,6 +79,15 @@ void enableSlot2Cache(void);
  */
 void disableSlot2Cache(void);
 
+/**
+ * Reassigns the DSi MPU regions so that main RAM and the New 3DS debugger RAM
+ * mirror at 0x0C000000-0x0DFFFFFF are data-cacheable.
+ */
+void enableN3dsExtraCache(void);
+
+/** Restores the BlocksDS DSi MPU region layout. */
+void disableN3dsExtraCache(void);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
